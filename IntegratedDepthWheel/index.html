@@ -1,1 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Wireline Depth Acquisition — SLB R&D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#080a0f;--bg1:#0d1018;--bg2:#111520;--bg3:#161b28;--bg4:#1c2235;
+  --line:rgba(255,255,255,0.06);--line2:rgba(255,255,255,0.12);
+  --t1:#e2e8f4;--t2:#7a86a0;--t3:#404858;--t4:#2a3040;
+  --green:#00e5a0;--green-dim:#00b87e;--green-bg:rgba(0,229,160,0.06);
+  --blue:#4da6ff;--blue-dim:#2d87e0;--blue-bg:rgba(77,166,255,0.06);
+  --red:#ff4d6a;--red-dim:#cc3050;--red-bg:rgba(255,77,106,0.06);
+  --amber:#ffb84d;--amber-bg:rgba(255,184,77,0.06);
+  --purple:#b48aff;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg0);color:var(--t1);font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:9999;}
 
+/* TOPBAR */
+.topbar{height:52px;background:var(--bg1);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;}
+.topbar-logo{width:32px;height:32px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#000;font-weight:700;flex-shrink:0;}
+.topbar-title h1{font-size:11px;font-weight:600;letter-spacing:0.14em;color:var(--t1);}
+.topbar-title p{font-size:9px;color:var(--t3);letter-spacing:0.07em;margin-top:2px;}
+.topbar-divider{width:1px;height:28px;background:var(--line);margin:0 4px;}
+.topbar-stat{display:flex;flex-direction:column;gap:2px;padding:0 10px;}
+.topbar-stat-label{font-size:8px;color:var(--t3);letter-spacing:0.12em;text-transform:uppercase;}
+.topbar-stat-value{font-size:13px;font-weight:600;color:var(--green);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.status-badge{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:4px;border:1px solid var(--line2);background:var(--bg3);font-size:10px;letter-spacing:0.1em;color:var(--t2);}
+.status-led{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+.status-led.run{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:blink 1s infinite;}
+.status-led.off{background:var(--t3);box-shadow:none;animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:300px 1fr;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg1);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+
+/* SECTION */
+.section{border-bottom:1px solid var(--line);padding:14px 16px;}
+.section-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.section-tag{font-size:8px;letter-spacing:0.18em;color:var(--t3);text-transform:uppercase;font-weight:500;white-space:nowrap;}
+.section-line{flex:1;height:1px;background:var(--line);}
+
+/* NUMERIC INPUT */
+.field{margin-bottom:10px;}
+.field:last-child{margin-bottom:0;}
+.field-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.field-name{font-size:10px;color:var(--t2);letter-spacing:0.04em;}
+.field-unit{font-size:9px;color:var(--t3);letter-spacing:0.06em;}
+.field-input{width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--line2);border-radius:4px;color:var(--t1);font-family:var(--mono);font-size:12px;font-weight:500;outline:none;transition:border-color 0.15s,background 0.15s;-moz-appearance:textfield;}
+.field-input::-webkit-inner-spin-button,.field-input::-webkit-outer-spin-button{-webkit-appearance:none;}
+.field-input:focus{border-color:var(--green);background:var(--bg4);}
+.field-input.amber:focus{border-color:var(--amber);}
+.field-input.red:focus{border-color:var(--red);}
+.field-input.blue:focus{border-color:var(--blue);}
+.field-hint{font-size:9px;color:var(--t3);margin-top:3px;padding-left:1px;}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* BUTTONS */
+.btn-section{padding:12px 16px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--line);}
+.btn{width:100%;padding:9px 12px;border-radius:4px;border:1px solid var(--line2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:0.1em;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn:hover{background:var(--bg4);}
+.btn:active{transform:scale(0.98);}
+.btn-run{background:var(--green-bg);border-color:var(--green-dim);color:var(--green);}
+.btn-run:hover{background:rgba(0,229,160,0.12);border-color:var(--green);}
+.btn-stop{background:var(--red-bg);border-color:var(--red-dim);color:var(--red);}
+.btn-stop:hover{background:rgba(255,77,106,0.12);}
+.btn-export{background:var(--blue-bg);border-color:var(--blue-dim);color:var(--blue);}
+.btn-export:hover{background:rgba(77,166,255,0.12);}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+
+/* WHEEL CARDS */
+.wheel-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.wheel-card{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:10px;text-align:center;transition:all 0.2s;position:relative;overflow:hidden;}
+.wheel-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background 0.2s;}
+.wheel-card.active{border-color:rgba(0,229,160,0.3);background:var(--green-bg);}
+.wheel-card.active::before{background:var(--green);}
+.wheel-card.slipping{border-color:rgba(255,77,106,0.3);background:var(--red-bg);}
+.wheel-card.slipping::before{background:var(--red);}
+.wc-num{font-size:22px;font-weight:600;color:var(--t2);line-height:1;}
+.wheel-card.active .wc-num{color:var(--green);}
+.wheel-card.slipping .wc-num{color:var(--red);}
+.wc-sf{font-size:14px;font-weight:600;margin-top:4px;color:var(--t3);}
+.wheel-card.active .wc-sf{color:var(--green);}
+.wheel-card.slipping .wc-sf{color:var(--red);}
+.wc-tag{font-size:8px;letter-spacing:0.12em;color:var(--t3);margin-top:3px;}
+.wheel-card.active .wc-tag{color:rgba(0,229,160,0.7);}
+.wheel-card.slipping .wc-tag{color:rgba(255,77,106,0.7);}
+
+/* SLIP METER */
+.slip-meter{margin-bottom:8px;}
+.slip-meter-header{display:flex;justify-content:space-between;margin-bottom:5px;}
+.slip-meter-label{font-size:9px;color:var(--t3);letter-spacing:0.1em;}
+.slip-meter-val{font-size:10px;font-weight:600;color:var(--red);}
+.slip-track{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.slip-fill{height:100%;background:var(--red);width:0%;transition:width 0.3s;border-radius:2px;}
+
+/* LOG */
+.log{background:var(--bg0);border:1px solid var(--line);border-radius:4px;height:100px;overflow-y:auto;padding:8px;font-size:9px;line-height:1.7;}
+.log::-webkit-scrollbar{width:2px;}
+.log::-webkit-scrollbar-thumb{background:var(--bg4);}
+.log-ok{color:var(--green);}
+.log-warn{color:var(--amber);}
+.log-err{color:var(--red);}
+.log-info{color:var(--blue);}
+.log-dim{color:var(--t3);}
+
+/* CONTENT */
+.content{display:flex;flex-direction:column;overflow:hidden;background:var(--bg0);}
+
+/* METRIC STRIP */
+.metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--line);flex-shrink:0;}
+.metric-card{padding:14px 18px;border-right:1px solid var(--line);position:relative;overflow:hidden;}
+.metric-card:last-child{border-right:none;}
+.metric-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.metric-card.green::after{background:var(--green);}
+.metric-card.blue::after{background:var(--blue);}
+.metric-card.purple::after{background:var(--purple);}
+.metric-card.red::after{background:var(--red);}
+.mc-label{font-size:8px;letter-spacing:0.16em;color:var(--t3);text-transform:uppercase;margin-bottom:8px;}
+.mc-value{font-size:28px;font-weight:600;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums;}
+.mc-unit{font-size:11px;color:var(--t3);margin-left:3px;font-weight:300;}
+.mc-sub{font-size:9px;color:var(--t3);margin-top:6px;}
+.mc-bar{height:2px;background:var(--bg4);border-radius:1px;margin-top:10px;overflow:hidden;}
+.mc-bar-fill{height:100%;border-radius:1px;width:0%;transition:width 0.4s;}
+.mc-bar-fill.green{background:var(--green);}
+.mc-bar-fill.blue{background:var(--blue);}
+.mc-bar-fill.purple{background:var(--purple);}
+.mc-bar-fill.red{background:var(--red);}
+.alarm-on{color:var(--red)!important;}
+.alarm-off{color:var(--green)!important;}
+
+/* CHART GRID */
+.chart-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:var(--line);overflow:hidden;min-height:0;}
+.chart-panel{background:var(--bg1);display:flex;flex-direction:column;padding:12px 14px;min-height:0;}
+.cp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;}
+.cp-title{font-size:8px;letter-spacing:0.14em;color:var(--t3);text-transform:uppercase;}
+.cp-pill{font-size:8px;padding:2px 7px;border-radius:3px;letter-spacing:0.06em;background:var(--bg3);color:var(--t3);border:1px solid var(--line);}
+.chart-wrap{position:relative;flex:1;min-height:0;}
+
+/* REPORT */
+.report-panel{background:var(--bg1);display:flex;flex-direction:column;padding:12px 14px;overflow:hidden;min-height:0;}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;flex:1;overflow-y:auto;}
+.report-grid::-webkit-scrollbar{width:2px;}
+.report-grid::-webkit-scrollbar-thumb{background:var(--bg4);}
+.report-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:10px;}
+.report-row:last-child{border-bottom:none;}
+.rk{color:var(--t3);}
+.rv{font-weight:600;color:var(--green);font-variant-numeric:tabular-nums;}
+.rv.warn{color:var(--amber);}
+.rv.bad{color:var(--red);}
+.rv.neu{color:var(--t2);}
+.verdict{margin-top:8px;padding:6px 10px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:0.1em;text-align:center;background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,0.2);display:none;}
+.verdict.show{display:block;}
+.verdict.fail{background:var(--red-bg);color:var(--red);border-color:rgba(255,77,106,0.2);}
+
+/* PROGRESS */
+.sim-progress{flex-shrink:0;padding:6px 14px;background:var(--bg0);border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+.sim-time-label{font-size:9px;color:var(--t3);letter-spacing:0.08em;white-space:nowrap;}
+.sim-time-val{font-size:11px;font-weight:600;color:var(--t1);white-space:nowrap;}
+.sim-track{flex:1;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.sim-fill{height:100%;background:var(--green);width:0%;transition:width 0.1s;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">W</div>
+  <div class="topbar-title">
+    <h1>WIRELINE DEPTH ACQUISITION SYSTEM</h1>
+    <p>IntegratedDepthWheel.slx — SLB R&amp;D — Fastest Wheel Algorithm — US Patent 4924596</p>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat"><span class="topbar-stat-label">Sim Time</span><span class="topbar-stat-value" id="tSimTime">0.0 s</span></div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat"><span class="topbar-stat-label">Active Wheel</span><span class="topbar-stat-value" id="tActiveWheel">W1</span></div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat"><span class="topbar-stat-label">Cable Speed</span><span class="topbar-stat-value" id="tCableSpeed">— m/s</span></div>
+  <div class="topbar-right">
+    <div class="status-badge">
+      <div class="status-led" id="statusLed"></div>
+      <span id="statusText">READY</span>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <div class="btn-section">
+      <button class="btn btn-run" onclick="runSim()">▶ &nbsp;RUN SIMULATION</button>
+      <div class="btn-row">
+        <button class="btn btn-stop" onclick="stopSim()">■ &nbsp;STOP</button>
+        <button class="btn" onclick="resetSim()">↺ &nbsp;RESET</button>
+      </div>
+      <button class="btn btn-export" onclick="exportReport()">⬇ &nbsp;EXPORT VALIDATION REPORT</button>
+    </div>
+
+    <!-- PHYSICS -->
+    <div class="section">
+      <div class="section-header"><span class="section-tag">Physics Parameters</span><div class="section-line"></div></div>
+
+      <div class="field">
+        <div class="field-label"><span class="field-name">EA — Axial stiffness</span><span class="field-unit">N</span></div>
+        <input class="field-input" type="number" value="10000000" min="1000000" max="100000000" step="1000000" onchange="P.EA=+this.value"/>
+        <div class="field-hint">Typical: 5 × 10⁶ – 20 × 10⁶ N</div>
+      </div>
+
+      <div class="field">
+        <div class="field-label"><span class="field-name">W_tool — Tool weight</span><span class="field-unit">N</span></div>
+        <input class="field-input" type="number" value="2943" min="100" max="50000" step="100" onchange="P.W_tool=+this.value"/>
+        <div class="field-hint">300 kg tool = 2943 N &nbsp;|&nbsp; 500 kg = 4905 N</div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label"><span class="field-name">λ_eff·g</span><span class="field-unit">N/m</span></div>
+          <input class="field-input" type="number" value="7.85" min="0.5" max="50" step="0.1" onchange="P.lambda=+this.value"/>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">L₀ initial</span><span class="field-unit">m</span></div>
+          <input class="field-input" type="number" value="100" min="10" max="1000" step="10" onchange="P.L0_init=+this.value"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIM SETTINGS -->
+    <div class="section">
+      <div class="section-header"><span class="section-tag">Simulation Settings</span><div class="section-line"></div></div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label"><span class="field-name">Cable speed</span><span class="field-unit">m/s</span></div>
+          <input class="field-input blue" type="number" value="2.0" min="0.1" max="20" step="0.1" onchange="P.speed=+this.value"/>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">Duration</span><span class="field-unit">s</span></div>
+          <input class="field-input blue" type="number" value="100" min="10" max="600" step="10" onchange="P.duration=+this.value"/>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Playback speed multiplier</span><span class="field-unit">×</span></div>
+        <input class="field-input blue" type="number" value="5" min="1" max="50" step="1" onchange="simSpeed=+this.value"/>
+        <div class="field-hint">Higher = faster display. Lower = smoother charts.</div>
+      </div>
+    </div>
+
+    <!-- SLIP W1 -->
+    <div class="section">
+      <div class="section-header"><span class="section-tag">Slip Injection — Wheel 1</span><div class="section-line"></div></div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Slip factor</span><span class="field-unit">0 – 1</span></div>
+        <input class="field-input amber" type="number" value="0.80" min="0.05" max="1.0" step="0.05" onchange="P.sf1=+this.value"/>
+        <div class="field-hint">1.0 = clean &nbsp;|&nbsp; 0.3 = severe slip</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label"><span class="field-name">Start time</span><span class="field-unit">s</span></div>
+          <input class="field-input amber" type="number" value="35" min="0" max="590" step="5" onchange="P.slip1Start=+this.value"/>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">End time</span><span class="field-unit">s</span></div>
+          <input class="field-input amber" type="number" value="50" min="5" max="600" step="5" onchange="P.slip1End=+this.value"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIP W2 -->
+    <div class="section">
+      <div class="section-header"><span class="section-tag">Slip Injection — Wheel 2</span><div class="section-line"></div></div>
+      <div class="field">
+        <div class="field-label"><span class="field-name">Slip factor</span><span class="field-unit">0 – 1</span></div>
+        <input class="field-input red" type="number" value="0.60" min="0.05" max="1.0" step="0.05" onchange="P.sf2=+this.value"/>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label"><span class="field-name">Start time</span><span class="field-unit">s</span></div>
+          <input class="field-input red" type="number" value="55" min="0" max="590" step="5" onchange="P.slip2Start=+this.value"/>
+        </div>
+        <div class="field">
+          <div class="field-label"><span class="field-name">End time</span><span class="field-unit">s</span></div>
+          <input class="field-input red" type="number" value="70" min="5" max="600" step="5" onchange="P.slip2End=+this.value"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHEEL STATUS -->
+    <div class="section">
+      <div class="section-header"><span class="section-tag">Wheel Status</span><div class="section-line"></div></div>
+      <div class="wheel-row">
+        <div class="wheel-card active" id="wc1">
+          <div class="wc-num">W1</div>
+          <div class="wc-sf" id="wsf1">1.00</div>
+          <div class="wc-tag" id="wtag1">ACTIVE</div>
+        </div>
+        <div class="wheel-card" id="wc2">
+          <div class="wc-num">W2</div>
+          <div class="wc-sf" id="wsf2">1.00</div>
+          <div class="wc-tag" id="wtag2">STANDBY</div>
+        </div>
+      </div>
+      <div class="slip-meter">
+        <div class="slip-meter-header">
+          <span class="slip-meter-label">CUMULATIVE SLIP</span>
+          <span class="slip-meter-val" id="slipValText">0.0000 m</span>
+        </div>
+        <div class="slip-track"><div class="slip-fill" id="slipFill"></div></div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="section" style="flex:1;min-height:140px;">
+      <div class="section-header"><span class="section-tag">Algorithm Event Log</span><div class="section-line"></div></div>
+      <div class="log" id="logBox">
+        <div class="log-ok">[00.00s] System initialized. Awaiting run command.</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <div class="content">
+    <!-- METRICS -->
+    <div class="metric-strip">
+      <div class="metric-card green">
+        <div class="mc-label">True Depth</div>
+        <div class="mc-value" id="mTrue">0.00<span class="mc-unit">m</span></div>
+        <div class="mc-sub">SCORR corrected · δL subtracted</div>
+        <div class="mc-bar"><div class="mc-bar-fill green" id="bTrue"></div></div>
+      </div>
+      <div class="metric-card blue">
+        <div class="mc-label">Raw Depth</div>
+        <div class="mc-value" id="mRaw">0.00<span class="mc-unit">m</span></div>
+        <div class="mc-sub">Fastest wheel accumulation</div>
+        <div class="mc-bar"><div class="mc-bar-fill blue" id="bRaw"></div></div>
+      </div>
+      <div class="metric-card purple">
+        <div class="mc-label">SCORR Stretch δL</div>
+        <div class="mc-value" id="mStretch">0.000<span class="mc-unit">cm</span></div>
+        <div class="mc-sub">Lubinski · (F·L₀)/EA</div>
+        <div class="mc-bar"><div class="mc-bar-fill purple" id="bStretch"></div></div>
+      </div>
+      <div class="metric-card red">
+        <div class="mc-label">Slip Alarm</div>
+        <div class="mc-value alarm-off" id="mAlarm">OFF</div>
+        <div class="mc-sub">Threshold · 4 in · 0.1016 m</div>
+        <div class="mc-bar"><div class="mc-bar-fill red" id="bAlarm"></div></div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="chart-grid">
+      <div class="chart-panel">
+        <div class="cp-header">
+          <span class="cp-title">Depth — True vs Raw vs L₀</span>
+          <span class="cp-pill" id="cpD">LIVE</span>
+        </div>
+        <div class="chart-wrap"><canvas id="cDepth"></canvas></div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="cp-header">
+          <span class="cp-title">SCORR Elastic Stretch (cm)</span>
+          <span class="cp-pill">δL = (F·L₀) / EA</span>
+        </div>
+        <div class="chart-wrap"><canvas id="cStretch"></canvas></div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="cp-header">
+          <span class="cp-title">Wheel Velocities — Slip Events Visible</span>
+          <span class="cp-pill">m/s</span>
+        </div>
+        <div class="chart-wrap"><canvas id="cVel"></canvas></div>
+      </div>
+
+      <div class="report-panel">
+        <div class="cp-header">
+          <span class="cp-title">Validation Report — Error Metrics</span>
+          <span class="cp-pill" id="cpR">PENDING</span>
+        </div>
+        <div class="report-grid">
+          <div class="report-row"><span class="rk">Simulation time</span><span class="rv neu" id="rTime">—</span></div>
+          <div class="report-row"><span class="rk">Final true depth</span><span class="rv neu" id="rDepth">—</span></div>
+          <div class="report-row"><span class="rk">Max SCORR stretch</span><span class="rv" id="rStretch">—</span></div>
+          <div class="report-row"><span class="rk">Stretch / depth</span><span class="rv" id="rRatio">—</span></div>
+          <div class="report-row"><span class="rk">Max slip error</span><span class="rv" id="rSlipErr">—</span></div>
+          <div class="report-row"><span class="rk">RMS depth error</span><span class="rv" id="rRMS">—</span></div>
+          <div class="report-row"><span class="rk">Net final error</span><span class="rv" id="rFinal">—</span></div>
+          <div class="report-row"><span class="rk">Algorithm switches</span><span class="rv neu" id="rSwitches">—</span></div>
+          <div class="report-row"><span class="rk">Slip events</span><span class="rv neu" id="rSlipEv">—</span></div>
+          <div class="report-row"><span class="rk">Alarm triggered</span><span class="rv neu" id="rAlarm">—</span></div>
+        </div>
+        <div class="verdict" id="vBanner">— ALGORITHM VERDICT —</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="sim-progress">
+      <span class="sim-time-label">SIMULATION PROGRESS</span>
+      <div class="sim-track"><div class="sim-fill" id="simFill"></div></div>
+      <span class="sim-time-val" id="simPct">0.0 %</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const P={EA:10000000,W_tool:2943,lambda:7.85,L0_init:100,speed:2.0,duration:100,sf1:0.8,sf2:0.6,slip1Start:35,slip1End:50,slip2Start:55,slip2End:70};
+let simSpeed=5,simTimer=null,simRunning=false,simTime=0;
+const DT=0.1;
+let depthAccum=0,pos1Prev=0,pos2Prev=0,slipCounter=0,alarmLatched=false,activeWheelSt=1;
+let switchCount=0,slipEvCount=0,alarmHit=false,lastActive=1,lastAlarm=false,maxStretch=0;
+let allSlipErr=[],allErrors=[];
+
+const MAX=250,labels=[],dTrue=[],dRaw=[],dL0=[],dStr=[],dV1=[],dV2=[];
+
+const co={responsive:true,maintainAspectRatio:false,animation:false,
+  plugins:{legend:{display:true,labels:{color:'#404858',font:{size:8,family:'IBM Plex Mono'},boxWidth:8,padding:6}}},
+  scales:{x:{ticks:{color:'#2a3040',font:{size:7},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.03)'},border:{color:'rgba(255,255,255,0.06)'}},
+          y:{ticks:{color:'#2a3040',font:{size:7}},grid:{color:'rgba(255,255,255,0.03)'},border:{color:'rgba(255,255,255,0.06)'}}}};
+
+function mkC(id,ds){return new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:ds},options:JSON.parse(JSON.stringify(co))});}
+
+const cDepth=mkC('cDepth',[
+  {label:'True Depth',data:dTrue,borderColor:'#00e5a0',borderWidth:2,pointRadius:0,tension:0.3},
+  {label:'Raw Depth', data:dRaw, borderColor:'#4da6ff',borderWidth:1.5,pointRadius:0,tension:0.3,borderDash:[4,3]},
+  {label:'L₀',        data:dL0,  borderColor:'#2a3040',borderWidth:1,pointRadius:0,tension:0.3,borderDash:[2,4]}
+]);
+const cStretch=mkC('cStretch',[{label:'δL (cm)',data:dStr,borderColor:'#b48aff',borderWidth:2,pointRadius:0,tension:0.3,fill:{target:'origin',above:'rgba(180,138,255,0.05)'}}]);
+const cVel=mkC('cVel',[
+  {label:'Wheel 1 (m/s)',data:dV1,borderColor:'#ffb84d',borderWidth:2,pointRadius:0,tension:0.2},
+  {label:'Wheel 2 (m/s)',data:dV2,borderColor:'#ff4d6a',borderWidth:2,pointRadius:0,tension:0.2}
+]);
+
+function lubinski(L0){const Ft=P.W_tool+P.lambda*L0;return Math.max(0,(Ft*L0)/P.EA);}
+function getSF(t,w){if(w===1)return(t>=P.slip1Start&&t<P.slip1End)?P.sf1:1.0;return(t>=P.slip2Start&&t<P.slip2End)?P.sf2:1.0;}
+
+function step(){
+  const sf1=getSF(simTime,1),sf2=getSF(simTime,2);
+  const v1=P.speed*sf1,v2=P.speed*sf2;
+  const p1=pos1Prev+v1*DT,p2=pos2Prev+v2*DT;
+  const d1=p1-pos1Prev,d2=p2-pos2Prev;
+
+  // Wheel selection
+  const THRESH=0.05;
+  const vd=Math.abs(v1)-Math.abs(v2);
+  if(vd>THRESH)activeWheelSt=1;else if(vd<-THRESH)activeWheelSt=2;
+  depthAccum+=activeWheelSt===1?d1:d2;
+
+  // Slip detection — 15% of cable speed threshold
+  // Counts one event per slip window, not per sample
+  const SLIP_VEL_THRESH=P.speed*0.15;
+  const velDiff=Math.abs(v1-v2);
+  const dd=Math.abs(d1-d2);
+  const w1s=Math.abs(v1)<Math.abs(v2)-THRESH;
+  const w2s=Math.abs(v2)<Math.abs(v1)-THRESH;
+
+  if((w1s||w2s)&&velDiff>SLIP_VEL_THRESH){
+    slipCounter+=dd;
+    if(!wasSlipping){slipEvCount++;wasSlipping=true;}
+  } else {
+    slipCounter=Math.max(0,slipCounter-0.0005);
+    wasSlipping=false;
+  }
+
+  if(slipCounter>0.1016){alarmLatched=true;alarmHit=true;}
+  else if(slipCounter<=0)alarmLatched=false;
+
+  // Physics
+  const L0=P.L0_init+P.speed*simTime;
+  const dL=lubinski(L0);
+  const trueD=depthAccum-dL;
+  const strCm=dL*100;
+
+  // Error metrics — both referenced from zero payout (excluding L0_init)
+  const cablePayout=P.speed*simTime;
+  const slipErrM=Math.abs(depthAccum-cablePayout);
+  const netErrM=Math.abs(trueD-cablePayout);
+
+  maxStretch=Math.max(maxStretch,dL);
+  allSlipErr.push(slipErrM*100);
+  allErrors.push(netErrM*100);
+  pos1Prev=p1;pos2Prev=p2;
+
+  return{trueD,rawD:depthAccum,L0,strCm,v1,v2,dL,
+         slipErrCm:slipErrM*100,netErrCm:netErrM*100,sf1,sf2};
+}
+
+function tick(){
+  for(let s=0;s<simSpeed;s++){
+    simTime+=DT;
+    if(simTime>P.duration){finish();return;}
+    const R=step();
+    if(activeWheelSt!==lastActive){switchCount++;addLog(simTime,`Wheel switch → W${activeWheelSt}  v1=${R.v1.toFixed(2)} m/s  v2=${R.v2.toFixed(2)} m/s`,'warn');lastActive=activeWheelSt;}
+    if(alarmLatched&&!lastAlarm){addLog(simTime,`SLIP ALARM triggered  cumulative = ${(slipCounter*100).toFixed(2)} cm`,'err');lastAlarm=true;}
+    if(!alarmLatched&&lastAlarm){addLog(simTime,'Slip alarm cleared.','ok');lastAlarm=false;}
+    if(labels.length>=MAX){labels.shift();[dTrue,dRaw,dL0,dStr,dV1,dV2].forEach(a=>a.shift());}
+    labels.push(simTime.toFixed(1));
+    dTrue.push(+R.trueD.toFixed(3));dRaw.push(+R.rawD.toFixed(3));dL0.push(+R.L0.toFixed(3));
+    dStr.push(+R.strCm.toFixed(4));dV1.push(+R.v1.toFixed(3));dV2.push(+R.v2.toFixed(3));
+    const maxD=P.speed*P.duration;
+    sH('mTrue',R.trueD.toFixed(2)+'<span class="mc-unit">m</span>');
+    sH('mRaw',R.rawD.toFixed(2)+'<span class="mc-unit">m</span>');
+    sH('mStretch',R.strCm.toFixed(3)+'<span class="mc-unit">cm</span>');
+    const ae=document.getElementById('mAlarm');ae.textContent=alarmLatched?'ALARM':'OFF';ae.className='mc-value '+(alarmLatched?'alarm-on':'alarm-off');
+    pct('bTrue',(R.trueD/maxD)*100);pct('bRaw',(R.rawD/maxD)*100);
+    pct('bStretch',Math.min(100,(R.dL/0.3)*100));pct('bAlarm',Math.min(100,(slipCounter/0.1016)*100));
+    pct('slipFill',Math.min(100,(slipCounter/0.5)*100));
+    sT('slipValText',slipCounter.toFixed(4)+' m');
+    updW(1,activeWheelSt===1,R.sf1<1,R.sf1);updW(2,activeWheelSt===2,R.sf2<1,R.sf2);
+    const p=(simTime/P.duration)*100;pct('simFill',p);sT('simPct',p.toFixed(1)+' %');
+    sT('tSimTime',simTime.toFixed(1)+' s');sT('tActiveWheel','W'+activeWheelSt);sT('tCableSpeed',P.speed.toFixed(1)+' m/s');
+  }
+  [cDepth,cStretch,cVel].forEach(c=>c.update('none'));
+}
+
+function runSim(){if(simRunning)return;simRunning=true;setStatus('run','RUNNING');addLog(simTime,`Started — EA=${(P.EA/1e6).toFixed(1)}MN  speed=${P.speed}m/s  dur=${P.duration}s`,'info');sT('cpR','RUNNING');simTimer=setInterval(tick,50);}
+function stopSim(){if(!simRunning)return;clearInterval(simTimer);simRunning=false;setStatus('off','STOPPED');addLog(simTime,'Stopped by user.','warn');}
+
+function resetSim(){
+  clearInterval(simTimer);simRunning=false;simTime=0;
+  depthAccum=0;pos1Prev=0;pos2Prev=0;slipCounter=0;alarmLatched=false;activeWheelSt=1;
+  switchCount=0;slipEvCount=0;alarmHit=false;lastActive=1;lastAlarm=false;maxStretch=0;allSlipErr=[];allErrors=[];
+  labels.length=0;[dTrue,dRaw,dL0,dStr,dV1,dV2].forEach(a=>a.length=0);[cDepth,cStretch,cVel].forEach(c=>c.update('none'));
+  setStatus('','READY');
+  sH('mTrue','0.00<span class="mc-unit">m</span>');sH('mRaw','0.00<span class="mc-unit">m</span>');sH('mStretch','0.000<span class="mc-unit">cm</span>');
+  document.getElementById('mAlarm').textContent='OFF';document.getElementById('mAlarm').className='mc-value alarm-off';
+  ['bTrue','bRaw','bStretch','bAlarm','slipFill','simFill'].forEach(id=>pct(id,0));
+  sT('slipValText','0.0000 m');sT('simPct','0.0 %');sT('tSimTime','0.0 s');sT('tActiveWheel','W1');
+  updW(1,true,false,1);updW(2,false,false,1);
+  document.getElementById('logBox').innerHTML='<div class="log-ok">[00.00s] System reset. Ready.</div>';
+  ['rTime','rDepth','rStretch','rRatio','rSlipErr','rRMS','rFinal','rSwitches','rSlipEv','rAlarm'].forEach(id=>sT(id,'—'));
+  const v=document.getElementById('vBanner');v.className='verdict';v.textContent='— ALGORITHM VERDICT —';sT('cpR','PENDING');sT('cpD','LIVE');
+}
+
+function finish(){
+  clearInterval(simTimer);simRunning=false;setStatus('','COMPLETE');
+  addLog(simTime,'Simulation complete.','ok');
+  const finalL0=P.L0_init+P.speed*simTime,finalDL=lubinski(finalL0),finalTrue=depthAccum-finalDL;
+  const expectedD=P.speed*simTime,finalErr=Math.abs(finalTrue-expectedD)*100;
+  const maxSE=allSlipErr.length>0?Math.max(...allSlipErr):0;
+  const rmsE=allErrors.length>0?Math.sqrt(allErrors.reduce((s,v)=>s+v*v,0)/allErrors.length):0;
+  const strRatio=finalTrue>0?((maxStretch/finalTrue)*100):0;
+  sT('rTime',simTime.toFixed(1)+' s');sT('rDepth',finalTrue.toFixed(2)+' m');
+  rV('rStretch',(maxStretch*100).toFixed(3)+' cm','');rV('rRatio',strRatio.toFixed(4)+' %','');
+  rV('rSlipErr',maxSE.toFixed(3)+' cm',maxSE>5?'warn':'');rV('rRMS',rmsE.toFixed(3)+' cm',rmsE>2?'warn':'');
+  rV('rFinal',finalErr.toFixed(3)+' cm',finalErr>5?'warn':'');
+  sT('rSwitches',switchCount.toString());sT('rSlipEv',slipEvCount.toString());rV('rAlarm',alarmHit?'YES':'NO',alarmHit?'warn':'');
+  const vb=document.getElementById('vBanner'),pass=finalErr<10&&maxSE<10;
+  vb.className='verdict show'+(pass?'':' fail');
+  vb.textContent=pass?'✓  FASTEST WHEEL ALGORITHM — VALIDATED':'✗  VALIDATION FAILED — CHECK PARAMETERS';
+  sT('cpR','DONE');sT('cpD','DONE');[cDepth,cStretch,cVel].forEach(c=>c.update('none'));
+}
+
+function exportReport(){
+  const lines=['═══════════════════════════════════════════════════════','       WIRELINE DEPTH VALIDATION REPORT','       SLB R&D — IntegratedDepthWheel Testbench','       Fastest Wheel Algorithm — US Patent 4924596','═══════════════════════════════════════════════════════','','PARAMETERS',`  EA:                   ${(P.EA/1e6).toFixed(2)} MN`,`  Tool weight:          ${P.W_tool.toFixed(0)} N`,`  Lambda_eff_g:         ${P.lambda.toFixed(2)} N/m`,`  L0_init:              ${P.L0_init.toFixed(0)} m`,`  Cable speed:          ${P.speed.toFixed(1)} m/s`,`  Duration:             ${P.duration.toFixed(0)} s`,'','SLIP INJECTION SEQUENCE',`  Wheel 1: t=${P.slip1Start}s – ${P.slip1End}s   factor = ${P.sf1.toFixed(2)}`,`  Wheel 2: t=${P.slip2Start}s – ${P.slip2End}s   factor = ${P.sf2.toFixed(2)}`,'','RESULTS',`  Max SCORR stretch:    ${document.getElementById('rStretch').textContent}`,`  Stretch/depth ratio:  ${document.getElementById('rRatio').textContent}`,`  Max slip error:       ${document.getElementById('rSlipErr').textContent}`,`  RMS depth error:      ${document.getElementById('rRMS').textContent}`,`  Net final error:      ${document.getElementById('rFinal').textContent}`,`  Algorithm switches:   ${document.getElementById('rSwitches').textContent}`,`  Slip events detected: ${document.getElementById('rSlipEv').textContent}`,`  Alarm triggered:      ${document.getElementById('rAlarm').textContent}`,'',`  ${document.getElementById('vBanner').textContent}`,'','═══════════════════════════════════════════════════════',`Generated: ${new Date().toLocaleString()}`];
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`WirelineValidation_${Date.now()}.txt`;a.click();URL.revokeObjectURL(url);
+  addLog(simTime,'Report exported to file.','ok');
+}
+
+function sH(id,h){document.getElementById(id).innerHTML=h;}
+function sT(id,t){document.getElementById(id).textContent=t;}
+function pct(id,p){document.getElementById(id).style.width=Math.min(100,Math.max(0,p)).toFixed(1)+'%';}
+function rV(id,t,cls){const e=document.getElementById(id);e.textContent=t;e.className='rv '+(cls||'');}
+function setStatus(state,text){const led=document.getElementById('statusLed');const txt=document.getElementById('statusText');led.className='status-led'+(state?' '+state:'');txt.textContent=text;}
+function updW(n,active,slipping,sf){
+  const c=document.getElementById('wc'+n),tag=document.getElementById('wtag'+n),sfEl=document.getElementById('wsf'+n);
+  c.className='wheel-card'+(active?' active':'')+(slipping?' slipping':'');
+  tag.textContent=active?'ACTIVE':(slipping?'SLIPPING':'STANDBY');sfEl.textContent=sf.toFixed(2);
+}
+function addLog(t,msg,cls){const box=document.getElementById('logBox');const div=document.createElement('div');div.className='log-'+cls;div.textContent=`[${t.toFixed(2)}s] ${msg}`;box.appendChild(div);if(box.children.length>80)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
+</script>
+</body>
+</html>
