@@ -27,7 +27,8 @@ To address this, the system continuously measures temperature and humidity, disp
 | **Buzzer (24V) & LED (24V)** | Serves as the audible and visual alarm indicators. |
 | **LM2596 Buck Converter** | Converts the 24V power supply down to a stable 5V for electronic components. |
 
----
+<img width="1636" height="956" alt="image" src="https://github.com/user-attachments/assets/47e4b951-690a-461f-a7e2-0cfbd01d3b32" />
+
 
 ## ⚙️ Core Engineering Concepts
 
