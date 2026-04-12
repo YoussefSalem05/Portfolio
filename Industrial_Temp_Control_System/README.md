@@ -13,7 +13,7 @@ To address this, the system continuously measures temperature and humidity, disp
 * **Automated Alarm System:** Activates a 24V buzzer and an LED indicator immediately if measured values exceed the predefined limits.
 * **Signal Smoothing:** Implements a digital low-pass filter to clean up sensor noise and ensure reliable triggering.
 
----
+![WhatsApp Image 2026-04-11 at 15 03 19](https://github.com/user-attachments/assets/bd9614b7-ff9a-4324-8f35-78637947f35d)
 
 ## 🛠️ Hardware Components
 
