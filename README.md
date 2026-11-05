@@ -37,6 +37,10 @@ Repositories here showcase my expertise in Model-Based Design and system validat
 These repositories highlight the intersection of data and physical machinery.
 * **What to expect:** You will find end-to-end AI pipelines designed for industrial applications. These projects emphasize robust data preprocessing (like sliding windows and signal filtering) and the deployment of both lightweight Edge ML models and deep learning architectures to extract meaningful patterns from noisy, imbalanced sensor data.
 
+### [Weld Seam Defect Detection](MachineLearning/Weld_Seam)
+
+A YOLOv8m computer-vision notebook for welding-defect detection, comparing two dataset versions through annotation analysis, model training, validation metrics, and sample predictions. Includes the notebook source, Kaggle link, dataset attribution, and setup instructions.
+
 ## Software & Data Structures
 
 ### [Ambulance Management System](Ambulance_Management_System)

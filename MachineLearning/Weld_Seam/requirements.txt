@@ -1,0 +1,9 @@
+ultralytics
+opencv-python
+matplotlib
+pandas
+seaborn
+numpy
+ipython
+wandb
+jupyterlab
