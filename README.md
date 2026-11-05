@@ -3,7 +3,7 @@
 
 **Mechatronics Engineer | Robotics | R&D Design | Systems Modeling & Control**
 
-I am a Senior Mechatronics Engineering student at Cairo University with professional R&D experience in modeling, developing, and validating electromechanical and control systems. My engineering philosophy centers on **Model-Based Design**: I believe in rigorously simulating and mathematically validating systems before deploying them to physical hardware. 
+I am a Senior Mechatronics Engineering student at Cairo University with professional R&D experience in modeling, developing, and validating electromechanical and control systems. My engineering philosophy centers on **System Design**: I believe in rigorously simulating and mathematically validating systems before deploying them to physical hardware. 
 
 Whether I am engineering intelligent physical systems, designing low-level embedded control architectures, or deploying machine learning pipelines, my goal is always to bridge the gap between theoretical simulation and reliable, real-world execution.
 
