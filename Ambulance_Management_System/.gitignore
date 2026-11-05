@@ -1,0 +1,27 @@
+# Visual Studio and editor state
+.vs/
+.vscode/
+*.vcxproj.user
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+
+# Local build products
+build/
+build-*/
+out/
+CMakeFiles/
+CMakeCache.txt
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.ipdb
+*.iobj
+
+# Generated default reports and Python caches
+OutputFile.txt
+__pycache__/
+*.pyc

@@ -1,0 +1,16 @@
+FT	PID	QT	WT
+3	4	1	1
+3	3	1	1
+5	2	1	3
+5	1	1	3
+Patients: 4 [NP: 1, SP: 1, EP: 2]
+Served: 4
+Cancelled: 0
+Hospitals: 1
+Cars: 2 [SCar: 1, NCar: 1]
+Avg wait time: 2.00
+EP not served by home hospital: 0.00%
+Avg busy time: 4.00
+Avg utilization: 80.00%
+OUT failure events: 0
+Simulation timesteps: 5

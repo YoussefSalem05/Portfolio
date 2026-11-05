@@ -37,5 +37,12 @@ Repositories here showcase my expertise in Model-Based Design and system validat
 These repositories highlight the intersection of data and physical machinery.
 * **What to expect:** You will find end-to-end AI pipelines designed for industrial applications. These projects emphasize robust data preprocessing (like sliding windows and signal filtering) and the deployment of both lightweight Edge ML models and deep learning architectures to extract meaningful patterns from noisy, imbalanced sensor data.
 
+## Software & Data Structures
+
+### [Ambulance Management System](Ambulance_Management_System)
+
+A C++17 simulation of ambulance dispatch across multiple hospitals, built with custom linked queues and priority queues. It models emergency triage, patient cancellation, ambulance failures, and maintenance, with interactive and silent modes, chronological reports, and regression tests. Includes a Visual Studio solution, CMake support, six scenario datasets, and a reproducible input/output demonstration.
+
 ---
  **Let's Connect:** [youssefsalem2223@gmail.com](mailto:youssefsalem2223@gmail.com) | [LinkedIn Profile](https://www.linkedin.com/in/youssefsalem2005/)
+
