@@ -49,6 +49,10 @@ Python coursework on simple and multiple linear regression, house-price predicti
 
 Implementations and experiments covering Gaussian Bayes classifiers, kernel density estimation, AdaBoost, PCA, and a neural network trained on XOR.
 
+## [Graduation Project](Graduation%20Project)
+
+AR4 robotic welding simulation using inverse kinematics, nonlinear model predictive control, and ROS 2 visualization.
+
 ## Software & Data Structures
 
 ### [Ambulance Management System](Ambulance_Management_System)
