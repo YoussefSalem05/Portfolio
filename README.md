@@ -41,6 +41,14 @@ These repositories highlight the intersection of data and physical machinery.
 
 A YOLOv8m computer-vision notebook for welding-defect detection, comparing two dataset versions through annotation analysis, model training, validation metrics, and sample predictions. Includes the notebook source, Kaggle link, dataset attribution, and setup instructions.
 
+### [Machine Intelligence Labs](MachineLearning/Machine_Intelligence_Labs)
+
+Python coursework on simple and multiple linear regression, house-price prediction, and polynomial salary modeling.
+
+### [Pattern Recognition Labs](MachineLearning/Pattern_Recognition_Labs)
+
+Implementations and experiments covering Gaussian Bayes classifiers, kernel density estimation, AdaBoost, PCA, and a neural network trained on XOR.
+
 ## Software & Data Structures
 
 ### [Ambulance Management System](Ambulance_Management_System)
