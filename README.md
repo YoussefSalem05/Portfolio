@@ -51,7 +51,7 @@ Implementations and experiments covering Gaussian Bayes classifiers, kernel dens
 
 ## [Graduation Project](Graduation%20Project)
 
-AR4 robotic welding simulation using inverse kinematics, nonlinear model predictive control, and ROS 2 visualization.
+Six-axis AR4 welding simulation that imports a timed Cartesian seam, initializes the arm with inverse kinematics, and tracks the path using IMPACT and alpaqa PANOC. The project entry includes the 30 cm demonstration and reproduction guide.
 
 ## Software & Data Structures
 
