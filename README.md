@@ -53,6 +53,10 @@ Implementations and experiments covering Gaussian Bayes classifiers, kernel dens
 
 Six-axis AR4 welding simulation that imports a timed Cartesian seam, initializes the arm with inverse kinematics, and tracks the path using IMPACT and alpaqa PANOC. The project entry includes the 30 cm demonstration and reproduction guide.
 
+## [PointCloud3D](Robotics/pointcloud3d)
+
+A standalone Kinect v2 inspection pipeline with GPU depth processing, ROS 2 Humble colored point clouds, RViz crop-box selection, depth-validity overlays, and planar-face STL export. Includes Docker setup, tests, and measured transport-performance results. [Source repository](https://github.com/YoussefSalem05/pointcloud3d).
+
 ## Software & Data Structures
 
 ### [Ambulance Management System](Ambulance_Management_System)
